@@ -1,0 +1,317 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webcam Mirror</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            background: #100b1d;
+            color: #f5f0ff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            width: 100%;
+            padding: 24px;
+            border-bottom: 1px solid #302344;
+            text-align: center;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+
+        h1 span {
+            color: #b794ff;
+        }
+
+        header p {
+            color: #a99bbd;
+            margin-bottom: 0;
+        }
+
+        main {
+            width: 100%;
+            max-width: 850px;
+            padding: 32px 20px;
+        }
+
+        .camera-card {
+            background: #1b1429;
+            border: 1px solid #392950;
+            border-radius: 18px;
+            padding: 20px;
+        }
+
+        .camera-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .camera-header h2 {
+            font-size: 17px;
+            margin: 0;
+        }
+
+        .status {
+            color: #c4b5fd;
+            font-size: 13px;
+        }
+
+        .video-container {
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            background: #0a0710;
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #392950;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+            display: none;
+        }
+
+        .placeholder {
+            text-align: center;
+            color: #a99bbd;
+            padding: 20px;
+        }
+
+        .placeholder .camera-icon {
+            font-size: 42px;
+            margin-bottom: 12px;
+        }
+
+        .placeholder p {
+            line-height: 1.6;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        button {
+            flex: 1;
+            padding: 13px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .start-button {
+            background: #a78bfa;
+            color: #180d2c;
+        }
+
+        .start-button:hover {
+            background: #c4b5fd;
+        }
+
+        .stop-button {
+            background: #302344;
+            color: #f5f0ff;
+        }
+
+        .stop-button:hover {
+            background: #45315f;
+        }
+
+        button:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .info {
+            margin-top: 20px;
+            padding: 18px;
+            background: #1b1429;
+            border: 1px solid #392950;
+            border-radius: 14px;
+        }
+
+        .info h3 {
+            margin-top: 0;
+            font-size: 15px;
+        }
+
+        .info p {
+            color: #b7a9ca;
+            font-size: 14px;
+            line-height: 1.7;
+            margin-bottom: 0;
+        }
+
+        footer {
+            margin-top: auto;
+            padding: 24px;
+            text-align: center;
+            color: #817392;
+            font-size: 12px;
+        }
+
+        @media (max-width: 480px) {
+            main {
+                padding: 20px 12px;
+            }
+
+            .camera-card {
+                padding: 12px;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>Webcam <span>Mirror</span></h1>
+        <p>A simple browser-based computer vision project</p>
+    </header>
+
+    <main>
+        <section class="camera-card">
+
+            <div class="camera-header">
+                <h2>Live Camera Preview</h2>
+                <span class="status" id="status">Camera off</span>
+            </div>
+
+            <div class="video-container">
+                <video id="video" autoplay playsinline muted></video>
+
+                <div class="placeholder" id="placeholder">
+                    <div class="camera-icon">📷</div>
+                    <strong>Your camera preview</strong>
+                    <p>Start your camera to see the mirrored video.</p>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button
+                    class="start-button"
+                    id="startButton"
+                    onclick="startCamera()">
+                    Start Camera
+                </button>
+
+                <button
+                    class="stop-button"
+                    id="stopButton"
+                    onclick="stopCamera()"
+                    disabled>
+                    Stop Camera
+                </button>
+            </div>
+
+        </section>
+
+        <section class="info">
+            <h3>About this project</h3>
+            <p>
+                This application displays a live, mirrored webcam feed.
+                It is a starting point for experimenting with computer
+                vision, facial landmarks, and real-time image processing.
+                The video is processed locally in your browser and is
+                not uploaded or recorded by this application.
+            </p>
+        </section>
+    </main>
+
+    <footer>
+        Built by Marissa Mrkall · Cybersecurity & AI Projects
+    </footer>
+
+    <script>
+        // Store the active camera stream
+        let cameraStream = null;
+
+        // Get the page elements
+        const video = document.getElementById("video");
+        const placeholder = document.getElementById("placeholder");
+        const status = document.getElementById("status");
+        const startButton = document.getElementById("startButton");
+        const stopButton = document.getElementById("stopButton");
+
+        // Start the webcam
+        async function startCamera() {
+            try {
+                status.textContent = "Requesting permission...";
+                startButton.disabled = true;
+
+                cameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: false
+                });
+
+                video.srcObject = cameraStream;
+                video.style.display = "block";
+                placeholder.style.display = "none";
+
+                status.textContent = "Camera active";
+                stopButton.disabled = false;
+
+            } catch (error) {
+                status.textContent = "Camera unavailable";
+                alert(
+                    "Unable to access your camera. Please allow camera " +
+                    "permission and check that no other app is blocking it."
+                );
+            } finally {
+                startButton.disabled = false;
+            }
+        }
+
+        // Stop the webcam and release the camera
+        function stopCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+
+            video.srcObject = null;
+            video.style.display = "none";
+            placeholder.style.display = "block";
+
+            status.textContent = "Camera off";
+            stopButton.disabled = true;
+            startButton.disabled = false;
+        }
+
+        // Release the camera if the page is closed
+        window.addEventListener("pagehide", stopCamera);
+    </script>
+
+</body>
+</html>
